@@ -168,7 +168,7 @@ def run_cross_model(device, dtype, out_dir):
         cg = to_dev(base_caches[i], device)
         text = gen(model_b, tok, cg, base_logits_list[i].to(device))
         print(f"\n  Prompt {i+1}: ...{prompt[-60:]}")
-        print(f"  >> {text[:200]}")
+        print(f"  >> {text}")
         results.append({"prompt": prompt, "base_gen": text})
 
     del model_b
@@ -182,7 +182,7 @@ def run_cross_model(device, dtype, out_dir):
         cg = to_dev(base_caches[i], device)
         text = gen(model_i, tok_i, cg, base_logits_list[i].to(device))
         print(f"\n  Prompt {i+1}: ...{prompt[-60:]}")
-        print(f"  >> {text[:200]}")
+        print(f"  >> {text}")
         results[i]["transplant_gen"] = text
 
     # Instruct's own cache for baseline
@@ -194,7 +194,7 @@ def run_cross_model(device, dtype, out_dir):
         c, l = prefill(model_i, ids, device)
         text = gen(model_i, tok_i, c, l)
         print(f"\n  Prompt {i+1}: ...{prompt[-60:]}")
-        print(f"  >> {text[:200]}")
+        print(f"  >> {text}")
         results[i]["instruct_gen"] = text
         inst_caches.append(to_cpu(c))
         inst_logits_list.append(l.cpu())
@@ -210,7 +210,7 @@ def run_cross_model(device, dtype, out_dir):
         cg = to_dev(inst_caches[i], device)
         text = gen(model_b2, tok2, cg, inst_logits_list[i].to(device))
         print(f"\n  Prompt {i+1}: ...{prompt[-60:]}")
-        print(f"  >> {text[:200]}")
+        print(f"  >> {text}")
         results[i]["reverse_transplant_gen"] = text
 
     del model_b2
@@ -366,7 +366,7 @@ def run_kv_swap(device, dtype, out_dir):
 
     cache_orig, logits_orig = prefill(model, ids, device)
     text_orig = gen(model, tok, cache_orig, logits_orig)
-    print(f"\n  Original: {text_orig[:200]}")
+    print(f"\n  Original: {text_orig}")
     results = [{"condition": "original", "text": text_orig}]
 
     for n in [5, 10, 20]:
@@ -375,7 +375,7 @@ def run_kv_swap(device, dtype, out_dir):
         rolled_len = seq_len - n
 
         text_roll = gen(model, tok, cache_roll, logits_roll)
-        print(f"\n  Rolled-{n}: {text_roll[:200]}")
+        print(f"\n  Rolled-{n}: {text_roll}")
         results.append({"condition": f"rolled_{n}", "text": text_roll})
 
         # Trim original to match rolled length
@@ -384,13 +384,13 @@ def run_kv_swap(device, dtype, out_dir):
         # K_orig + V_rolled
         h1 = hybrid(cache_orig_t, cache_roll)
         t1 = gen(model, tok, h1, logits_roll)
-        print(f"  K_orig + V_roll{n}: {t1[:200]}")
+        print(f"  K_orig + V_roll{n}: {t1}")
         results.append({"condition": f"K_orig_V_rolled{n}", "text": t1})
 
         # K_rolled + V_orig
         h2 = hybrid(cache_roll, cache_orig_t)
         t2 = gen(model, tok, h2, logits_orig)
-        print(f"  K_roll{n} + V_orig: {t2[:200]}")
+        print(f"  K_roll{n} + V_orig: {t2}")
         results.append({"condition": f"K_rolled{n}_V_orig", "text": t2})
 
     # V swap for truncation (both directions)
@@ -405,7 +405,7 @@ def run_kv_swap(device, dtype, out_dir):
         trunc_len = seq_len - n
 
         text_trunc = gen(model, tok, cache_trunc, logits_trunc)
-        print(f"\n  Truncated-{n}: {text_trunc[:200]}")
+        print(f"\n  Truncated-{n}: {text_trunc}")
         results.append({"condition": f"truncated_{n}", "text": text_trunc})
 
         # V from truncated -> full context (pad with orig K for last n positions)
@@ -413,7 +413,7 @@ def run_kv_swap(device, dtype, out_dir):
         cache_orig_prefix = trim(cache_orig, 0, trunc_len)
         h_trunc_v = hybrid(cache_orig_prefix, cache_trunc)
         t_tv = gen(model, tok, h_trunc_v, logits_orig)
-        print(f"  K_orig[:{trunc_len}] + V_trunc{n}: {t_tv[:200]}")
+        print(f"  K_orig[:{trunc_len}] + V_trunc{n}: {t_tv}")
         results.append({
             "condition": f"K_orig_prefix_V_truncated{n}", "text": t_tv})
 
@@ -422,7 +422,7 @@ def run_kv_swap(device, dtype, out_dir):
         # K from truncated, V from original (first trunc_len positions)
         h_orig_v = hybrid(cache_trunc, cache_orig_v_prefix)
         t_ov = gen(model, tok, h_orig_v, logits_trunc)
-        print(f"  K_trunc{n} + V_orig[:{trunc_len}]: {t_ov[:200]}")
+        print(f"  K_trunc{n} + V_orig[:{trunc_len}]: {t_ov}")
         results.append({
             "condition": f"K_truncated{n}_V_orig_prefix", "text": t_ov})
 
@@ -441,21 +441,21 @@ def run_kv_swap(device, dtype, out_dir):
 
     ta = gen(model, tok, ca, la)
     tb = gen(model, tok, cb, lb)
-    print(f"\n  AI text: {ta[:200]}")
-    print(f"  Pasta text: {tb[:200]}")
+    print(f"\n  AI text: {ta}")
+    print(f"  Pasta text: {tb}")
     results.append({"condition": "AI_only", "text": ta})
     results.append({"condition": "pasta_only", "text": tb})
 
     # K_AI + V_pasta
     h_av = hybrid(ca, cb)
     t_av = gen(model, tok, h_av, la)
-    print(f"\n  K_AI + V_pasta: {t_av[:200]}")
+    print(f"\n  K_AI + V_pasta: {t_av}")
     results.append({"condition": "K_AI_V_pasta", "text": t_av})
 
     # K_pasta + V_AI
     h_ba = hybrid(cb, ca)
     t_ba = gen(model, tok, h_ba, lb)
-    print(f"  K_pasta + V_AI: {t_ba[:200]}")
+    print(f"  K_pasta + V_AI: {t_ba}")
     results.append({"condition": "K_pasta_V_AI", "text": t_ba})
 
     del model
