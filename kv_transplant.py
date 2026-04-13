@@ -218,34 +218,95 @@ def run_cross_model(device, dtype, out_dir):
     return results
 
 
-def undo_rope(k_tensor, head_dim, base=1000000.0):
+def undo_rope(k_tensor, head_dim, base=1000000.0, pos_offset=0):
     """Remove RoPE rotation from K vectors.
+
+    Uses the split-half convention matching Qwen2/transformers rotate_half:
+    dimension pairs are (i, i + d/2), NOT interleaved (0,1),(2,3)...
 
     k_tensor: (batch, heads, seq_len, head_dim)
     Returns de-rotated K of same shape.
     """
     seq_len = k_tensor.shape[2]
     dim = head_dim
-    # Compute inverse rotation angles
+    half = dim // 2
     inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2, dtype=torch.float32) / dim))
-    positions = torch.arange(seq_len, dtype=torch.float32)
-    # angles: (seq_len, dim/2)
-    angles = torch.outer(positions, inv_freq)
-    # For inverse rotation, negate the angles
-    cos_inv = torch.cos(-angles).to(k_tensor.device, dtype=k_tensor.dtype)
-    sin_inv = torch.sin(-angles).to(k_tensor.device, dtype=k_tensor.dtype)
+    positions = torch.arange(seq_len, dtype=torch.float32) + float(pos_offset)
+    angles = torch.outer(positions, inv_freq)  # (seq_len, half)
+    cos_val = torch.cos(angles).to(k_tensor.device, dtype=k_tensor.dtype)
+    sin_val = torch.sin(angles).to(k_tensor.device, dtype=k_tensor.dtype)
 
-    # Apply inverse rotation pairwise to dimensions
     k = k_tensor.float()
-    k1 = k[..., 0::2]  # even dims
-    k2 = k[..., 1::2]  # odd dims
+    k_first = k[..., :half]   # dims 0..d/2-1
+    k_second = k[..., half:]  # dims d/2..d-1
     k_derotated = torch.zeros_like(k)
-    k_derotated[..., 0::2] = k1 * cos_inv - k2 * sin_inv
-    k_derotated[..., 1::2] = k1 * sin_inv + k2 * cos_inv
+    # Inverse rotation: R(-θ) applied to (k_first, k_second)
+    k_derotated[..., :half] = k_first * cos_val + k_second * sin_val
+    k_derotated[..., half:] = k_second * cos_val - k_first * sin_val
     return k_derotated
 
 
-def run_rope_correction(device, dtype, out_dir):
+def apply_rope(k_tensor, head_dim, base=1000000.0, pos_offset=0):
+    """Apply RoPE rotation to K vectors with a positional offset.
+
+    Uses the split-half convention matching Qwen2/transformers rotate_half.
+    """
+    seq_len = k_tensor.shape[2]
+    dim = head_dim
+    half = dim // 2
+    inv_freq = 1.0 / (base ** (torch.arange(0, dim, 2, dtype=torch.float32) / dim))
+    positions = torch.arange(seq_len, dtype=torch.float32) + float(pos_offset)
+    angles = torch.outer(positions, inv_freq)
+    cos_val = torch.cos(angles).to(k_tensor.device, dtype=k_tensor.dtype)
+    sin_val = torch.sin(angles).to(k_tensor.device, dtype=k_tensor.dtype)
+
+    k = k_tensor.float()
+    k_first = k[..., :half]
+    k_second = k[..., half:]
+    k_rot = torch.zeros_like(k)
+    # Forward rotation: R(θ) applied to (k_first, k_second)
+    k_rot[..., :half] = k_first * cos_val - k_second * sin_val
+    k_rot[..., half:] = k_second * cos_val + k_first * sin_val
+    return k_rot
+
+
+def select_rope_prompt_ids(tokenizer, target_tokens=2000,
+                           cache_path="data_cache.json"):
+    """Select a long prompt from data_cache.json and truncate to target_tokens."""
+    path = Path(cache_path)
+    if path.exists():
+        try:
+            items = json.loads(path.read_text())
+        except Exception:
+            items = []
+        for idx, item in enumerate(items):
+            full = item.get("full")
+            if not full:
+                continue
+            ids = tokenizer.encode(full)
+            if len(ids) >= target_tokens:
+                ids = ids[:target_tokens]
+                meta = {
+                    "source": f"{cache_path}[{idx}].full",
+                    "available_tokens": len(tokenizer.encode(full)),
+                    "context_tokens": len(ids),
+                    "target_tokens": target_tokens,
+                }
+                return torch.tensor(ids), meta
+
+    prompt = PROMPTS[0]
+    ids = tokenizer.encode(prompt)
+    meta = {
+        "source": "PROMPTS[0]",
+        "available_tokens": len(ids),
+        "context_tokens": len(ids),
+        "target_tokens": min(len(ids), target_tokens),
+    }
+    return torch.tensor(ids), meta
+
+
+def run_rope_correction(device, dtype, out_dir, rope_tokens=2000,
+                        rope_cache="data_cache.json"):
     """Compare K vectors after undoing RoPE rotation."""
     print("\n" + "=" * 60)
     print("Exp 4: RoPE Correction")
@@ -253,9 +314,13 @@ def run_rope_correction(device, dtype, out_dir):
     print("=" * 60)
 
     model, tok = load_model("Qwen/Qwen2.5-14B", device, dtype)
-    prompt = PROMPTS[0]
-    ids = torch.tensor(tok.encode(prompt))
+    prompt_ids, prompt_meta = select_rope_prompt_ids(
+        tok, target_tokens=rope_tokens, cache_path=rope_cache
+    )
+    ids = prompt_ids
     seq_len = len(ids)
+    print(f"  Context tokens: {seq_len}")
+    print(f"  Context source: {prompt_meta['source']}")
 
     cache_orig, _ = prefill(model, ids, device)
     k0, _ = _get_kv(cache_orig, 0)
@@ -270,6 +335,7 @@ def run_rope_correction(device, dtype, out_dir):
 
         cos_k_raw = []
         cos_k_derotated = []
+        cos_k_aligned = []
 
         for layer in range(_n_layers(cache_orig)):
             # Raw K comparison (with RoPE)
@@ -282,28 +348,43 @@ def run_rope_correction(device, dtype, out_dir):
                 k_orig, k_roll, dim=-1).mean().item()
             cos_k_raw.append(raw_cos)
 
-            # De-rotate both
+            # De-rotate both with correct positional offsets
             k_orig_full = k_orig_l[:, :, n:, :]
             k_roll_full = k_roll_l[:, :, :overlap, :]
 
-            k_orig_derot = undo_rope(k_orig_full, head_dim)
-            k_roll_derot = undo_rope(k_roll_full, head_dim)
+            k_orig_derot = undo_rope(k_orig_full, head_dim, pos_offset=n)
+            k_roll_derot = undo_rope(k_roll_full, head_dim, pos_offset=0)
 
             derot_cos = torch.nn.functional.cosine_similarity(
                 k_orig_derot[0], k_roll_derot[0], dim=-1).mean().item()
             cos_k_derotated.append(derot_cos)
 
+            # Align rolled RoPE to match original positions (pos 0 -> pos n)
+            k_roll_aligned = apply_rope(
+                undo_rope(k_roll_full, head_dim, pos_offset=0),
+                head_dim,
+                pos_offset=n,
+            )
+            aligned_cos = torch.nn.functional.cosine_similarity(
+                k_orig_full[0], k_roll_aligned[0], dim=-1).mean().item()
+            cos_k_aligned.append(aligned_cos)
+
         mean_raw = sum(cos_k_raw) / len(cos_k_raw)
         mean_derot = sum(cos_k_derotated) / len(cos_k_derotated)
+        mean_aligned = sum(cos_k_aligned) / len(cos_k_aligned)
         print(f"  Roll {n:2d}: raw_K_cos={mean_raw:.6f}  "
-              f"derotated_K_cos={mean_derot:.6f}  "
-              f"diff={mean_derot - mean_raw:+.6f}")
+              f"derot_K_cos={mean_derot:.6f}  "
+              f"aligned_K_cos={mean_aligned:.6f}  "
+              f"derot-raw={mean_derot - mean_raw:+.6f}  "
+              f"aligned-raw={mean_aligned - mean_raw:+.6f}")
         results.append({
             "roll_n": n,
             "raw_k_cos_per_layer": cos_k_raw,
             "derotated_k_cos_per_layer": cos_k_derotated,
+            "aligned_k_cos_per_layer": cos_k_aligned,
             "raw_k_cos_mean": mean_raw,
             "derotated_k_cos_mean": mean_derot,
+            "aligned_k_cos_mean": mean_aligned,
         })
 
     del model
@@ -315,15 +396,15 @@ def run_rope_correction(device, dtype, out_dir):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+    fig, axes = plt.subplots(2, 2, figsize=(14, 12))
 
-    # Bar chart: raw vs derotated
     ns = [r["roll_n"] for r in results]
     raw = [r["raw_k_cos_mean"] for r in results]
     derot = [r["derotated_k_cos_mean"] for r in results]
     x = np.arange(len(ns))
 
-    ax = axes[0]
+    # (0,0) Bar chart: raw vs derotated
+    ax = axes[0][0]
     ax.bar(x - 0.15, raw, 0.3, label="Raw K (with RoPE)", color="steelblue")
     ax.bar(x + 0.15, derot, 0.3, label="De-rotated K (RoPE removed)",
            color="darkorange")
@@ -331,27 +412,51 @@ def run_rope_correction(device, dtype, out_dir):
     ax.set_xticklabels([str(n) for n in ns])
     ax.set_xlabel("Tokens rolled")
     ax.set_ylabel("Mean Cosine Similarity")
-    ax.set_title("K Similarity: Raw vs RoPE-Corrected")
+    ax.set_title("Raw vs RoPE-Removed K Similarity")
     ax.legend()
     ax.set_ylim(0, 1.05)
 
-    # Per-layer for roll_5
-    ax = axes[1]
+    # (0,1) RoPE inflation: how much RoPE position mismatch inflates similarity
+    ax = axes[0][1]
+    inflation = [r - d for r, d in zip(raw, derot)]
+    ax.bar(x, inflation, 0.5, color="firebrick")
+    ax.set_xticks(x)
+    ax.set_xticklabels([str(n) for n in ns])
+    ax.set_xlabel("Tokens rolled")
+    ax.set_ylabel("Raw − De-rotated")
+    ax.set_title("RoPE Inflation (raw − derotated)")
+    ax.axhline(0, color="gray", ls="--", alpha=0.3)
+
+    # (1,0) Per-layer raw vs derotated for roll=5
+    ax = axes[1][0]
     r5 = [r for r in results if r["roll_n"] == 5][0]
-    ax.plot(r5["raw_k_cos_per_layer"], label="Raw K", color="steelblue", lw=2)
-    ax.plot(r5["derotated_k_cos_per_layer"], label="De-rotated K",
-            color="darkorange", lw=2)
+    layers = np.arange(len(r5["raw_k_cos_per_layer"]))
+    ax.plot(layers, r5["raw_k_cos_per_layer"],
+            label="Raw K", color="steelblue", lw=2)
+    ax.plot(layers, r5["derotated_k_cos_per_layer"],
+            label="De-rotated K", color="darkorange", lw=2)
     ax.set_xlabel("Layer")
     ax.set_ylabel("Cosine Similarity")
     ax.set_title("Per-Layer K Similarity (roll=5)")
     ax.legend()
+
+    # (1,1) Per-layer derotated for all roll amounts
+    ax = axes[1][1]
+    colors = plt.cm.viridis(np.linspace(0.2, 0.9, len(results)))
+    for r, c in zip(results, colors):
+        ax.plot(r["derotated_k_cos_per_layer"],
+                label=f"roll {r['roll_n']}", color=c, lw=1.5)
+    ax.set_xlabel("Layer")
+    ax.set_ylabel("Cosine Similarity (de-rotated)")
+    ax.set_title("Per-Layer Content-Only K Similarity")
+    ax.legend(fontsize=8)
 
     plt.suptitle("RoPE Correction: Is K Difference Just Positional?", fontsize=14)
     plt.tight_layout()
     plt.savefig(out_dir / "rope_correction.png", dpi=150)
     plt.close()
 
-    return results
+    return results, prompt_meta
 
 
 def run_kv_swap(device, dtype, out_dir):
@@ -471,6 +576,8 @@ def main():
     parser.add_argument("--skip-cross-model", action="store_true")
     parser.add_argument("--skip-kv-swap", action="store_true")
     parser.add_argument("--skip-rope", action="store_true")
+    parser.add_argument("--rope-tokens", type=int, default=2000)
+    parser.add_argument("--rope-cache", default="data_cache.json")
     args = parser.parse_args()
 
     if args.device == "auto":
@@ -486,14 +593,23 @@ def main():
     all_results = {}
 
     if not args.skip_rope:
-        all_results["rope_correction"] = run_rope_correction(device, dtype, out)
+        rope_results, rope_meta = run_rope_correction(
+            device, dtype, out,
+            rope_tokens=args.rope_tokens,
+            rope_cache=args.rope_cache,
+        )
+        rope_out = {"rope_correction": rope_results,
+                     "rope_correction_meta": rope_meta}
+        with open(out / "rope_correction.json", "w") as f:
+            json.dump(rope_out, f, indent=2)
     if not args.skip_cross_model:
         all_results["cross_model"] = run_cross_model(device, dtype, out)
     if not args.skip_kv_swap:
         all_results["kv_swap"] = run_kv_swap(device, dtype, out)
 
-    with open(out / "transplant_results.json", "w") as f:
-        json.dump(all_results, f, indent=2)
+    if all_results:
+        with open(out / "transplant_results.json", "w") as f:
+            json.dump(all_results, f, indent=2)
     print(f"\nAll results saved to {out}/")
 
 

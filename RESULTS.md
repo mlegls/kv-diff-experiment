@@ -10,7 +10,9 @@ Experiments measuring how KV cache vectors change under different prompt modific
 | Roll vs truncate 1-by-1, compaction comparison | `kv_diff_extended.py` | `results_*/roll_truncate.json`, `results_*/summary.json` |
 | Attention patterns & downstream output | `kv_diff_attention.py` | `results_attention/` |
 | FFT & regression analysis | `plot_fft_comprehensive.py` | `results_comparison/` |
-| KV transplant & RoPE correction | `kv_transplant.py` | `results_transplant/` |
+| KV transplant (cross-model, K/V swap) | `kv_transplant.py` | `results_transplant/transplant_results.json` |
+| RoPE correction (per-roll-amount) | `kv_transplant.py` | `results_transplant/rope_correction.json` |
+| RoPE correction (full curve, 2000 tok) | `kv_diff_extended_rope.py` | `results_rope_2000/` |
 | Cross-model comparison plots | `plot_comparison.py`, `plot_original_comparison.py` | `results_comparison/` |
 
 ---
@@ -96,9 +98,21 @@ The top-1 next token prediction ("This", probability 0.78-0.88) is identical acr
 
 ## 7. RoPE Correction
 
-De-rotating K vectors to remove RoPE positional encoding makes **zero difference** (change < 0.00003 in cosine similarity). This is because cosine similarity is rotation-invariant when both vectors are rotated by the same amount.
+**[Updated]** The original experiment used incorrect dimension pairing (interleaved instead of split-half), producing a spurious null result. After fixing `undo_rope` to match Qwen2's actual `rotate_half` convention (pairs `(i, i+d/2)` not `(2i, 2i+1)`), the result reverses completely:
 
-The K similarity drop from rolling is NOT from RoPE position shifts per se — it's from **context changes propagating through attention across layers**. At layer 0, K depends only on the token and its position. At deeper layers, K depends on the full causal context, which changes when the prefix is removed.
+| Roll | Raw K cos | De-rotated K cos | RoPE deflation |
+|------|-----------|------------------|----------------|
+| 1 | 0.987 | **0.999** | −0.011 |
+| 3 | 0.935 | **0.999** | −0.064 |
+| 5 | 0.925 | **0.998** | −0.073 |
+| 10 | 0.895 | **0.998** | −0.102 |
+| 20 | 0.879 | **0.998** | −0.119 |
+
+**The K difference from rolling IS almost entirely RoPE positional encoding.** Once the position rotation is removed, the content-only K vectors are ~0.998 similar — essentially identical — even at roll 20 on a 2000-token context. The raw cosine similarity was being *deflated* by the RoPE position mismatch.
+
+Per-layer analysis confirms this: the raw K curve oscillates wildly across layers (RoPE interference), while the de-rotated curve is a flat line near 1.0. All roll amounts stay >0.997 de-rotated at every layer, with only a tiny content divergence in early-mid layers.
+
+This explains why the model's output is so robust to rolling (§6): the K *content* barely changes, so attention routing is essentially preserved. The raw K cosine similarity drop was a measurement artifact of comparing vectors at mismatched RoPE positions.
 
 ## 8. KV Cache Transplant Experiments
 
@@ -153,9 +167,9 @@ For truncation, K_trunc + V_orig = K_trunc + V_trunc (because V values are ident
 
 3. **Compaction summaries genuinely preserve semantic information** in V-space (85% centroid similarity vs 59% for random text), even though position-by-position alignment is completely lost.
 
-4. **K changes from rolling are NOT just RoPE position shifts** — they reflect genuine context changes propagating through layers. However, the model's output is remarkably robust to these changes.
+4. **K changes from rolling ARE almost entirely RoPE position shifts.** After correctly removing RoPE (split-half convention), K content similarity is ~0.998 even at roll 20. The apparent K degradation in raw cosine similarity was a measurement artifact of comparing vectors at mismatched positions. This explains the model's output robustness — the actual attention routing information is nearly unchanged.
 
-5. **Attention patterns change substantially under rolling, but output doesn't.** The model has learned redundant attention paths — different routing strategies that reach the same conclusion.
+5. **Attention patterns change substantially under rolling, but output doesn't.** The attention *weight distributions* shift (cos_sim ~0.41), but since the underlying K content is preserved, the model reaches the same conclusions through slightly different routing.
 
 6. **Model size and instruct tuning don't meaningfully affect any of these properties.** The KV cache behavior is a fundamental property of the transformer architecture, not a learned characteristic that varies with training.
 
