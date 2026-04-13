@@ -498,6 +498,44 @@ def run_kv_swap(device, dtype, out_dir):
         print(f"  K_roll{n} + V_orig: {t2}")
         results.append({"condition": f"K_rolled{n}_V_orig", "text": t2})
 
+    # RoPE-corrected K/V swaps
+    # The naive K_orig_trimmed + V_rolled has WRONG relative positions
+    # (K at pos n..seq-1 but Q at pos seq-n, giving offset of n).
+    # Fix: shift K_orig to positions 0..L-1 so relative positions match.
+    # Conversely, naive K_rolled + V_orig already has CORRECT positions.
+    print("\n" + "=" * 60)
+    print("Exp 2a: RoPE-Corrected K/V Swaps")
+    print("  Fix RoPE positions so Q-K relative positions are correct")
+    print("=" * 60)
+
+    k0, _ = _get_kv(cache_orig, 0)
+    head_dim = k0.shape[-1]
+
+    for n in [5, 10, 20]:
+        rolled_ids = ids[n:]
+        cache_roll, logits_roll = prefill(model, rolled_ids, device)
+        rolled_len = seq_len - n
+
+        # K_orig (RoPE-corrected) + V_rolled
+        # Shift K_orig from positions n..seq-1 to 0..L-1
+        pairs = []
+        for layer_i in range(_n_layers(cache_orig)):
+            k_orig, _ = _get_kv(cache_orig, layer_i)
+            _, v_roll = _get_kv(cache_roll, layer_i)
+            orig_dtype = k_orig.dtype
+            k_orig_trimmed = k_orig[:, :, n:, :]
+            k_corrected = apply_rope(
+                undo_rope(k_orig_trimmed, head_dim, pos_offset=n),
+                head_dim, pos_offset=0).to(orig_dtype)
+            min_seq = min(k_corrected.shape[2], v_roll.shape[2])
+            pairs.append((k_corrected[:, :, :min_seq, :].clone(),
+                          v_roll[:, :, :min_seq, :].clone()))
+        h_corrected = _build_cache_direct(pairs)
+        t_corrected = gen(model, tok, h_corrected, logits_roll)
+        print(f"  K_orig_ropefixed + V_roll{n}: {t_corrected}")
+        results.append({
+            "condition": f"K_orig_ropefixed_V_rolled{n}", "text": t_corrected})
+
     # V swap for truncation (both directions)
     print("\n" + "=" * 60)
     print("Exp 2b: V Swap -- Truncation")
