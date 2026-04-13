@@ -1,0 +1,96 @@
+{
+  "kv_swap": [
+    {
+      "condition": "original",
+      "text": " This provided a physical machine that could precisely and swiftly follow instructions (a program) to carry out tasks, if given in a form that it could understand. This was the first significant step toward modern AI.\nThe field of AI research was born at a workshop at Dartmouth College in 1956. Attendees Allen Newell (CMU), Herbert Simon (CMU), John McCarthy ("
+    },
+    {
+      "condition": "rolled_5",
+      "text": " This device and the ideas behind it inspired a handful of scientists to begin seriously discussing the possibility of building an electronic brain. The field of AI research was born at a conference at Dartmouth College in 1956. The researchers were optimistic about the future: \"We think that a significant advance can be made in one or more of these problems if a carefully selected group of scientists work on it"
+    },
+    {
+      "condition": "K_orig_V_rolled5",
+      "text": " This computer. The Turing. The Turing machine is an abstract essence of human reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of"
+    },
+    {
+      "condition": "K_rolled5_V_orig",
+      "text": " This in 1 in 1 in 1 in 1 in 1 in 1 111111 11 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 "
+    },
+    {
+      "condition": "rolled_10",
+      "text": " This device and the ideas behind it inspired a handful of scientists to begin seriously discussing the possibility of building an electronic brain. The field of AI research was born at a conference at Dartmouth College in 1956. The conference was organized by John McCarthy, who coined the term \"artificial intelligence\" to describe the study of man-made creatures able to perform functions requiring intelligence when performed by humans"
+    },
+    {
+      "condition": "K_orig_V_rolled10",
+      "text": " This computer was programmed digital symbols. The Turing AI was invented by mathematicians who described the process of human thinking as the mechanical manipulation of symbols. The Turing AI was invented by mathematicians who described the process of human thinking as the mechanical manipulation of symbols. The Turing AI was invented by mathematicians who described the process of human thinking as the mechanical manipulation of symbols. The Turing AI was invented by mathematic"
+    },
+    {
+      "condition": "K_rolled10_V_orig",
+      "text": " This stories of stories of stories stories stories of stories of stories stories of stories of stories stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories"
+    },
+    {
+      "condition": "rolled_20",
+      "text": " This device and the ideas behind it inspired a handful of scientists to begin seriously discussing the possibility of building an electronic brain. The field of AI research was born at a conference at Dartmouth College in 1956. The conference was organized by John McCarthy, who coined the term \"artificial intelligence\" to describe the study of man-made creatures able to perform functions requiring intelligence when performed by humans"
+    },
+    {
+      "condition": "K_orig_V_rolled20",
+      "text": " This machine is capable of the computer. The computer is a machine based on the abstract essence. The computer is a machine based on the abstract essence of mathematical reasoning. The computer is a machine based on the abstract essence of mathematical reasoning. The computer is a machine based on the abstract essence of mathematical reasoning. The computer is a machine based on the abstract essence of mathematical reasoning. The computer is a machine"
+    },
+    {
+      "condition": "K_rolled20_V_orig",
+      "text": " This .\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
+    },
+    {
+      "condition": "truncated_5",
+      "text": " essence of mathematical reasoning. This provided a physical machine that could precisely and swiftly follow instructions (a program) to carry out tasks, if given in a form that it could understand. This was the first significant step toward modern AI.\nThe field of AI research was born at a workshop at Dartmouth College in 1956. Attendees Allen Newell (CMU), Herbert Simon (CM"
+    },
+    {
+      "condition": "K_orig_prefix_V_truncated5",
+      "text": " This article is about the history of artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of"
+    },
+    {
+      "condition": "K_truncated5_V_orig_prefix",
+      "text": " essence of mathematical reasoning. This provided a physical machine that could precisely and swiftly follow instructions (a program) to carry out tasks, if given in a form that it could understand. This was the first significant step toward modern AI.\nThe field of AI research was born at a workshop at Dartmouth College in 1956. Attendees Allen Newell (CMU), Herbert Simon (CM"
+    },
+    {
+      "condition": "truncated_10",
+      "text": " machine based on the abstract essence of mathematical reasoning. This provided a physical machine that could precisely and swiftly follow instructions (a program) to carry out tasks, if given in a form that it could understand. This was the first significant step toward modern AI.\nThe field of AI research was born at a workshop at Dartmouth College in 1956. Attendees Allen Newell (CMU"
+    },
+    {
+      "condition": "K_orig_prefix_V_truncated10",
+      "text": " This article is about the history of artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of the term artificial intelligence. For a history of the term, see History of"
+    },
+    {
+      "condition": "K_truncated10_V_orig_prefix",
+      "text": " machine based on the abstract essence of mathematical reasoning. This provided a physical machine that could precisely and swiftly follow instructions (a program) to carry out tasks, if given in a form that it could understand. This was the first significant step toward modern AI.\nThe field of AI research was born at a workshop at Dartmouth College in 1956. Attendees Allen Newell (CMU"
+    },
+    {
+      "condition": "truncated_20",
+      "text": ", which allowed these ideas to be put into practice. This device and its successors are now used to carry out all sorts of AI tasks.\nThe study of mechanical or \u201cformal\u201d reasoning began with philosophers and mathematicians in antiquity. The study of mathematical logic led directly to Alan Turing\u2019s theory of computation, which suggested that a machine, by shuffling symbols as simple as \u201c0\u201d and"
+    },
+    {
+      "condition": "K_orig_prefix_V_truncated20",
+      "text": " This provided the infrastructure that made these ideas concrete and also led to the realization that the computer could be used to simulate the process of human thought. This realization was the stimulus for the study of artificial intelligence. The field was founded on the claim that a central property of humans, intelligence\u2014the sapience of Homo sapiens\u2014can be so precisely described that it can be simulated by a machine. This raises"
+    },
+    {
+      "condition": "K_truncated20_V_orig_prefix",
+      "text": ", which allowed these ideas to be put into practice. This device and its successors are now used to carry out all sorts of AI tasks.\nThe study of mechanical or \u201cformal\u201d reasoning began with philosophers and mathematicians in antiquity. The study of mathematical logic led directly to Alan Turing\u2019s theory of computation, which suggested that a machine, by shuffling symbols as simple as \u201c0\u201d and"
+    },
+    {
+      "condition": "AI_only",
+      "text": " culminated in the invention of the programmable digital computer, which allowed these ideas to be put into practice. This device and its successors are now used to carry out all sorts of AI tasks.\nThe study of mechanical or \u201cformal\u201d reasoning began with philosophers and mathematicians in antiquity. The study of mathematical logic led directly to Alan Turing\u2019s theory of computation, which suggested that a machine,"
+    },
+    {
+      "condition": "pasta_only",
+      "text": " Cut into strips with a knife or a pasta cutter. Cook in boiling salted water for a few minutes, then drain and serve with your favorite sauce.<|endoftext|>"
+    },
+    {
+      "condition": "K_AI_V_pasta",
+      "text": " culinaria.com\nThe dough is ready when it is smooth and elastic. If it is too sticky, add a little more flour. If it is too dry, add a little more water.\nKnead the dough for 10 minutes, then let it rest for 10 minutes.\nDivide the dough into 12 equal pieces and roll each piece into a ball.\nCover"
+    },
+    {
+      "condition": "K_pasta_V_AI",
+      "text": " Cutlery, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer,"
+    }
+  ]
+}
