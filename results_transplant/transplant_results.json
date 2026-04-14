@@ -116,5 +116,9 @@
       "condition": "K_pasta_V_AI",
       "text": " Cutlery, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer, the first computer,"
     }
-  ]
+  ],
+  "prompts": {
+    "ai_history": "The history of artificial intelligence began in antiquity, with myths, stories and rumors of artificial beings endowed with intelligence or consciousness by master craftsmen. The seeds of modern AI were planted by philosophers who attempted to describe the process of human thinking as the mechanical manipulation of symbols. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning.",
+    "pasta": "To make fresh pasta, combine two cups of all-purpose flour with three large eggs on a clean work surface. Knead the dough for about ten minutes until it becomes smooth and elastic. Let the dough rest for thirty minutes covered with a damp cloth. Roll out the dough as thin as possible and cut into desired shapes. Cook in boiling salted water for two to three minutes until the pasta floats to the surface."
+  }
 }
