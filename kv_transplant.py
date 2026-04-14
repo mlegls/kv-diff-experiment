@@ -474,40 +474,6 @@ def run_kv_swap(device, dtype, out_dir):
     print(f"\n  Original: {text_orig}")
     results = [{"condition": "original", "text": text_orig}]
 
-    for n in [5, 10, 20]:
-        rolled_ids = ids[n:]
-        cache_roll, logits_roll = prefill(model, rolled_ids, device)
-        rolled_len = seq_len - n
-
-        text_roll = gen(model, tok, cache_roll, logits_roll)
-        print(f"\n  Rolled-{n}: {text_roll}")
-        results.append({"condition": f"rolled_{n}", "text": text_roll})
-
-        # Trim original to match rolled length
-        cache_orig_t = trim(cache_orig, n, seq_len)
-
-        # K_orig + V_rolled
-        h1 = hybrid(cache_orig_t, cache_roll)
-        t1 = gen(model, tok, h1, logits_roll)
-        print(f"  K_orig + V_roll{n}: {t1}")
-        results.append({"condition": f"K_orig_V_rolled{n}", "text": t1})
-
-        # K_rolled + V_orig
-        h2 = hybrid(cache_roll, cache_orig_t)
-        t2 = gen(model, tok, h2, logits_orig)
-        print(f"  K_roll{n} + V_orig: {t2}")
-        results.append({"condition": f"K_rolled{n}_V_orig", "text": t2})
-
-    # RoPE-corrected K/V swaps
-    # The naive K_orig_trimmed + V_rolled has WRONG relative positions
-    # (K at pos n..seq-1 but Q at pos seq-n, giving offset of n).
-    # Fix: shift K_orig to positions 0..L-1 so relative positions match.
-    # Conversely, naive K_rolled + V_orig already has CORRECT positions.
-    print("\n" + "=" * 60)
-    print("Exp 2a: RoPE-Corrected K/V Swaps")
-    print("  Fix RoPE positions so Q-K relative positions are correct")
-    print("=" * 60)
-
     k0, _ = _get_kv(cache_orig, 0)
     head_dim = k0.shape[-1]
 
@@ -516,25 +482,42 @@ def run_kv_swap(device, dtype, out_dir):
         cache_roll, logits_roll = prefill(model, rolled_ids, device)
         rolled_len = seq_len - n
 
-        # K_orig (RoPE-corrected) + V_rolled
-        # Shift K_orig from positions n..seq-1 to 0..L-1
+        text_roll = gen(model, tok, cache_roll, logits_roll)
+        print(f"\n  Rolled-{n} (re-prefilled): {text_roll}")
+        results.append({"condition": f"rolled_{n}", "text": text_roll})
+
+        # Trim original to match rolled length
+        cache_orig_t = trim(cache_orig, n, seq_len)
+
+        # K_orig[n:] + V_rolled (cross-pass)
+        h1 = hybrid(cache_orig_t, cache_roll)
+        t1 = gen(model, tok, h1, logits_roll)
+        print(f"  K_orig + V_roll{n}: {t1}")
+        results.append({"condition": f"K_orig_V_rolled{n}", "text": t1})
+
+        # K_rolled + V_orig[n:] (cross-pass)
+        h2 = hybrid(cache_roll, cache_orig_t)
+        t2 = gen(model, tok, h2, logits_orig)
+        print(f"  K_roll{n} + V_orig: {t2}")
+        results.append({"condition": f"K_rolled{n}_V_orig", "text": t2})
+
+        # Simulated roll: trim original cache, shift K's RoPE back by n
+        # Both K and V from the SAME forward pass, just trimmed and repositioned
         pairs = []
         for layer_i in range(_n_layers(cache_orig)):
-            k_orig, _ = _get_kv(cache_orig, layer_i)
-            _, v_roll = _get_kv(cache_roll, layer_i)
-            orig_dtype = k_orig.dtype
-            k_orig_trimmed = k_orig[:, :, n:, :]
-            k_corrected = apply_rope(
-                undo_rope(k_orig_trimmed, head_dim, pos_offset=n),
+            k_orig_l, v_orig_l = _get_kv(cache_orig, layer_i)
+            orig_dtype = k_orig_l.dtype
+            k_trimmed = k_orig_l[:, :, n:, :]
+            v_trimmed = v_orig_l[:, :, n:, :].clone()
+            k_shifted = apply_rope(
+                undo_rope(k_trimmed, head_dim, pos_offset=n),
                 head_dim, pos_offset=0).to(orig_dtype)
-            min_seq = min(k_corrected.shape[2], v_roll.shape[2])
-            pairs.append((k_corrected[:, :, :min_seq, :].clone(),
-                          v_roll[:, :, :min_seq, :].clone()))
-        h_corrected = _build_cache_direct(pairs)
-        t_corrected = gen(model, tok, h_corrected, logits_roll)
-        print(f"  K_orig_ropefixed + V_roll{n}: {t_corrected}")
+            pairs.append((k_shifted, v_trimmed))
+        cache_simroll = _build_cache_direct(pairs)
+        t_simroll = gen(model, tok, cache_simroll, logits_orig)
+        print(f"  Simulated roll-{n} (trim + RoPE shift): {t_simroll}")
         results.append({
-            "condition": f"K_orig_ropefixed_V_rolled{n}", "text": t_corrected})
+            "condition": f"simulated_roll_{n}", "text": t_simroll})
 
     # V swap for truncation (both directions)
     print("\n" + "=" * 60)

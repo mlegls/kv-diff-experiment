@@ -17,6 +17,14 @@
       "text": " This in 1 in 1 in 1 in 1 in 1 in 1 111111 11 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 "
     },
     {
+      "condition": "K_orig_ropefixed_V_rolled5",
+      "text": " This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in"
+    },
+    {
+      "condition": "simulated_roll_5",
+      "text": " This work culmed Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work Work"
+    },
+    {
       "condition": "rolled_10",
       "text": " This device and the ideas behind it inspired a handful of scientists to begin seriously discussing the possibility of building an electronic brain. The field of AI research was born at a conference at Dartmouth College in 1956. The conference was organized by John McCarthy, who coined the term \"artificial intelligence\" to describe the study of man-made creatures able to perform functions requiring intelligence when performed by humans"
     },
@@ -27,6 +35,14 @@
     {
       "condition": "K_rolled10_V_orig",
       "text": " This stories of stories of stories stories stories of stories of stories stories of stories of stories stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories of stories"
+    },
+    {
+      "condition": "K_orig_ropefixed_V_rolled10",
+      "text": " This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in"
+    },
+    {
+      "condition": "simulated_roll_10",
+      "text": " This work culmed worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked"
     },
     {
       "condition": "rolled_20",
@@ -41,16 +57,12 @@
       "text": " This .\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n"
     },
     {
-      "condition": "K_orig_ropefixed_V_rolled5",
-      "text": " This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in"
-    },
-    {
-      "condition": "K_orig_ropefixed_V_rolled10",
-      "text": " This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in"
-    },
-    {
       "condition": "K_orig_ropefixed_V_rolled20",
       "text": " This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in the 1940s, a machine based on the abstract essence of mathematical reasoning. This work culminated in the invention of the programmable digital computer in"
+    },
+    {
+      "condition": "simulated_roll_20",
+      "text": " This work culmed worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked worked"
     },
     {
       "condition": "truncated_5",
